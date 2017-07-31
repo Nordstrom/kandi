@@ -1,0 +1,56 @@
+kandi:
+  backoff:
+    max: 1
+    reset: 30
+    inital: 1
+
+influx:
+  url: my-test-url:8082
+  user: fred
+  password: fredspassword
+  timeout: 1
+  userAgent: meh
+  database: test-db
+  precision: test-precision
+
+kafka:
+  consumer:
+    offsets:
+      initial: 99
+      retention: 1
+      commitInterval: 2
+    return:
+      errors: true
+    retry:
+      backoff: 3
+    maxWaitTime: 4
+    maxProcessingTime: 5
+    fetch:
+      max: 6
+      min: 7
+      default: 8
+  metadata:
+    Rretry:
+      max: 9
+      backoff: 10
+    refreshFrequency: 11
+  Version: 4-4-4-4
+  net:
+    writeTimeout: 12
+    keepAlive: 13
+    maxOpenRequests: 14
+    readTimeout: 15
+    dialTimeout: 16
+  clientID: test-client-id
+  channelBufferSize: 17
+  group:
+    return:
+      notifications: true
+    offsets:
+      retry:
+        max: 18
+    partitionStrategy: range
+    heartbeat:
+      interval: 19
+    session:
+      timeout: 20
