@@ -1,67 +1,84 @@
 package main
 
 import (
-	"github.com/prometheus/common/log"
+	"github.com/Shopify/sarama"
+	log "github.com/sirupsen/logrus"
+	"time"
+	influx "github.com/influxdata/influxdb/client/v2"
 )
 
-type KandiApp struct {
+type Kandi struct {
 	conf 		*Config
 	Consumer	Consumer
 	Influx		*Influx
-	Parser		Parser
 }
 
-func (k *KandiApp) initialize() (error) {
-	if k.Influx ==  nil {
-		influx, err := NewInflux(k.conf.Influx)
-		if err != nil  {
-			return err
-		}
-		influx.Test()
-		k.Influx = influx
-	}
+func (k *Kandi) initialize() (error) {
 	if k.Consumer == nil {
 		consumer, err := NewKafkaConsumer(k.conf.Kafka)
 		if err != nil {
+			MetricsKafkaInitializationFailure.Add(1)
 			return err
 		}
 		k.Consumer = consumer
 	}
-	if k.Parser == nil {
-		k.Parser = NewParser()
-	}
+	k.Influx = &Influx{k.conf.Influx}
 	return nil
 }
 
-type Kandi interface {
-	Start(conf *Config) (error)
-}
-
-func (k *KandiApp) Start(conf *Config) (error) {
-	k.initialize()
+func (k *Kandi) Start() (error) {
+	err := k.initialize()
+	if err != nil {
+		return err
+	}
 	defer k.Consumer.Close()
 	for {
-		message, notification, err := k.Consumer.Consume()
+		start := time.Now()
+		log.Debug("Consuming Messages")
+		batch, messages, err := k.consumeMessages()
 		if err != nil {
 			return err
 		}
-		if notification != nil {
-			println("Rebalanced")
+		log.Debug("Writing batch")
+		writeErr := k.Influx.Write(batch)
+		if writeErr != nil {
+			return writeErr
 		}
-		if message != nil && len(message.Value) != 0 {
+		k.Consumer.MarkOffset(messages)
+		MetricBatchDurationTaken.Set(time.Since(start).Nanoseconds())
+	}
+	log.Debug("Exiting Kandi Start")
 
-			log.With("database", k.conf.Influx.Database).Info("Creating new batch point")
+	return nil
+}
 
-			parsed := k.Parser.parse(message.Value)
-			if parsed.Err == nil {
-				log.With("database", k.conf.Influx.Database).With("point", parsed.Point).Info("Adding point to batch points")
-				err := k.Influx.Write(parsed.Point)
-				if err != nil {
-					return err
-				}
+func (k *Kandi) consumeMessages() (influx.BatchPoints, []*sarama.ConsumerMessage, error) {
+	maxBatchSize := k.conf.Kandi.Batch.Size
+	maxDuration := k.conf.Kandi.Batch.Duration
+	start := time.Now()
+	messages := make([]*sarama.ConsumerMessage, maxBatchSize)
+	batch, err := k.Influx.NewBatch()
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < maxBatchSize; i++ {
+
+		message, err := k.Consumer.Consume()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if message != nil && message.Value != nil && len(message.Value) > 0 {
+			messages = append(messages, message)
+			parsed, _ := k.Influx.ParseMessage(message)
+			if parsed != nil {
+				batch.AddPoint(parsed)
 			}
-			k.Consumer.MarkOffset(message)
+		}
+
+		if maxDuration > 0 && time.Since(start) >= maxDuration {
+			break
 		}
 	}
-	return nil
+	return batch, messages, nil
 }

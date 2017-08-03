@@ -1,9 +1,12 @@
 package main
 
 import (
+	log "github.com/sirupsen/logrus"
 	"time"
 	influx "github.com/influxdata/influxdb/client/v2"
-	"github.com/prometheus/common/log"
+	"strings"
+	"github.com/Shopify/sarama"
+	"github.com/influxdata/influxdb/models"
 )
 
 type InfluxConfig struct {
@@ -17,66 +20,82 @@ type InfluxConfig struct {
 	BatchSize        int
 	WriteConsistency string
 	RetentionPolicy  string
+	AcceptedErrors	 []string
 }
 
 type Influx struct {
-	influxConfig		*InfluxConfig
-	Client			Client
-	Batch			influx.BatchPoints
+	config		*InfluxConfig
 }
 
-func (c *Influx) Write(point *influx.Point) (error) {
-	log.With("point", point.String()).Info("Adding point to batch points")
-	if c.Batch == nil {
-		log.With("database", c.influxConfig.Database).With("precision", c.influxConfig.Precision).Info("Creating new batch")
-		bpConfig := influx.BatchPointsConfig{Precision: c.influxConfig.Precision, Database: c.influxConfig.Database, RetentionPolicy: c.influxConfig.RetentionPolicy, WriteConsistency: c.influxConfig.WriteConsistency}
-		bp, err := influx.NewBatchPoints(bpConfig)
+func (i *Influx) Write(batch influx.BatchPoints) (error) {
+	if batch != nil && len(batch.Points()) >= i.config.BatchSize {
+		client, err := i.NewClient()
 		if err != nil {
-			log.With("error", err.Error()).With("database", c.influxConfig.Database).With("precision", c.influxConfig.Precision).Error("Creating new batch")
+			MetricInfluxInitializationFailure.Add(1)
 			return err
 		}
-		log.With("database", c.influxConfig.Database).With("precision", c.influxConfig.Precision).Info("Successfully created new batch")
-		c.Batch = bp
-	}
-	c.Batch.AddPoint(point)
-	if len(c.Batch.Points()) >= c.influxConfig.BatchSize {
-		log.With("BatchedPoints", len(c.Batch.Points())).With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Info("Writing points to Influx")
-		err := c.Client.Write(c.Batch)
+		err = client.Write(batch)
 		if err != nil {
-			log.With("Error", err).With("BatchedPoints", len(c.Batch.Points())).With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Errorf("Writing points to Influx failed", err)
+			if strings.Contains(err.Error(), "partial write") {
+				MetricPartialWrite.Add(1)
+				return nil
+			} else if strings.Contains(err.Error(), "field type conflict") {
+				MetricFieldTypeConflict.Add(1)
+				return nil
+			}
+			MetricWriteAttemptFailure.Add(1)
 			return err
 		}
-		log.With("BatchedPoints", len(c.Batch.Points())).With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Info("Successfully wrote points to influx")
-		c.Batch = nil
+		MetricPointsWritten.Add(int64(len(batch.Points())))
 	}
 	return nil
 }
 
-func (c *Influx) Ping() (time.Duration, string, error) {
-	log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Info("Pinging Influx")
-	duration, response, err := c.Client.Ping(c.influxConfig.Timeout)
-	if err != nil {
-		log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).With("Error", err).Errorf("Failed to ping influx", err)
-	}
-	log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Info("Successfully pinged influx")
-	return duration, response, err
+func (i *Influx) NewClient() (influx.Client, error) {
+	return influx.NewHTTPClient(influx.HTTPConfig{i.config.Url, i.config.User, i.config.Password, i.config.UserAgent, i.config.Timeout, false, nil})
 }
 
-func (c *Influx) Test() (*influx.Response, error) {
-	log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).With("Query", "SHOW SERIES").Info("Testing Influx Database")
-	query := influx.NewQuery("SHOW SERIES", c.influxConfig.Database, c.influxConfig.Precision)
-	response, err := c.Client.Query(query)
+func (i *Influx) ParseMessages(messages []*sarama.ConsumerMessage) (influx.BatchPoints) {
+	batchConf := influx.BatchPointsConfig{i.config.Precision, i.config.Database, i.config.RetentionPolicy, i.config.WriteConsistency}
+	batch, err := influx.NewBatchPoints(batchConf)
 	if err != nil {
-		log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).With("Error", err).With("Query", "SHOW SERIES").Errorf("Failed to test influx database", err)
+		log.WithFields(log.Fields{"precision":i.config.Precision,"database":i.config.Database,"retentionPolicy":i.config.RetentionPolicy,"WriteConsistency":i.config.WriteConsistency}).Info("Failed to create batch points configuration")
+		return nil
 	}
-	log.With("Url", c.influxConfig.Url).With("Database", c.influxConfig.Database).Info("Successfully tested influx database")
-	return response, err
+
+	if messages == nil || len(messages) == 0 {
+		return batch
+	}
+
+	log.WithField("points", len(messages)).Debug("Parsing messages into points")
+	for _, message := range messages {
+		if message != nil && len(message.Value) != 0 {
+			point, _ := i.ParseMessage(message)
+			if point != nil {
+				batch.AddPoint(point)
+			}
+		}
+	}
+	log.WithField("points", len(batch.Points())).Debug("Successfully parsed messages into points")
+	return batch
 }
 
-func NewInflux(config *InfluxConfig) (*Influx, error) {
-	client, err := NewInfluxClient(config)
-	if err != nil {
+func (i *Influx) ParseMessage(message *sarama.ConsumerMessage) (*influx.Point, error) {
+	point, err := models.ParsePointsWithPrecision(message.Value, time.Now().UTC(), i.config.Precision)
+	if err != nil || len(point) == 0 {
+		log.Debug("Failed to parse message")
+		MetricPointsParseFailure.Add(1)
 		return nil, err
 	}
-	return &Influx{influxConfig: config, Client: client}, nil
+	return influx.NewPointFrom(point[0]), nil
+}
+
+func (i *Influx) NewBatch() (influx.BatchPoints, error) {
+	batchConf := influx.BatchPointsConfig{i.config.Precision, i.config.Database, i.config.RetentionPolicy, i.config.WriteConsistency}
+	batch, err := influx.NewBatchPoints(batchConf)
+	if err != nil {
+		log.WithFields(log.Fields{"precision":i.config.Precision,"database":i.config.Database,"retentionPolicy":i.config.RetentionPolicy,"WriteConsistency":i.config.WriteConsistency}).Info("Failed to create batch points configuration")
+		return nil, err
+	}
+	return batch, nil
 }

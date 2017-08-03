@@ -9,7 +9,12 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-var TestInfluxConfig = []byte(`
+var TestEnvInfluxConfig = []byte(`
+influx:
+  User: george
+`)
+
+var TestConfig = []byte(`
 influx:
   Url: my-test-url:8082
   User: fred
@@ -20,22 +25,16 @@ influx:
   Precision: test-precision
   RetentionPolicy: mypolicy
   WriteConsistency: anywrite
-`)
 
-var TestEnvInfluxConfig = []byte(`
-influx:
-  User: george
-`)
-
-var TestKandiConfig = []byte(`
 kandi:
   backoff:
     max: 1
-    time: 2
+    interval: 2
     reset: 3
-`)
+  batch:
+    size: 4
+    duration: 5
 
-var TestKafkaConfig = []byte(`
 kafka:
   brokers: test-url:9092
   topics: test-topics
@@ -43,7 +42,7 @@ kafka:
   loggingEnabled: true
   consumer:
     offsets:
-      initial: newest
+      initial: oldest
       retention: 1
       commitInterval: 2
     return:
@@ -69,7 +68,6 @@ kafka:
     readTimeout: 15
     dialTimeout: 16
   clientID: test-client-id
-  channelBufferSize: 17
   group:
     return:
       notifications: true
@@ -140,17 +138,17 @@ var KandiConfigConfigTests = []struct {
 		"kandi.Backoff.Max",
 		func(toTest *KandiConfig, label string, t *testing.T){
 			actual := toTest.Backoff.Max
-			if actual != 1 {
-				t.Error(fmt.Sprintf("%s expected to be 1 but found %s", label, actual))
+			if actual != 1 * time.Millisecond {
+				t.Error(fmt.Sprintf("%s expected to be 1 millisecond but found %s", label, actual))
 			}
 		},
 	},
 	{
-		"kandi.Backoff.Time",
+		"kandi.Backoff.Interval",
 		func(toTest *KandiConfig, label string, t *testing.T){
-			actual := toTest.Backoff.Time
-			if actual != 2 {
-				t.Error(fmt.Sprintf("%s expected to be 2 but found %s", label, actual))
+			actual := toTest.Backoff.Interval
+			if actual != 2 * time.Millisecond {
+				t.Error(fmt.Sprintf("%s expected to be 2 milliseconds but found %s", label, actual))
 			}
 		},
 	},
@@ -158,8 +156,26 @@ var KandiConfigConfigTests = []struct {
 		"kandi.Backoff.Reset",
 		func(toTest *KandiConfig, label string, t *testing.T){
 			actual := toTest.Backoff.Reset
-			if actual != 3 {
-				t.Error(fmt.Sprintf("%s expected to be 3 but found %s", label, actual))
+			if actual != 3 * time.Millisecond {
+				t.Error(fmt.Sprintf("%s expected to be 3 milliseconds but found %s", label, actual))
+			}
+		},
+	},
+	{
+		"kandi.Batch.Size",
+		func(toTest *KandiConfig, label string, t *testing.T){
+			actual := toTest.Batch.Size
+			if actual != 4 {
+				t.Error(fmt.Sprintf("%s expected to be 4 but found %s", label, actual))
+			}
+		},
+	},
+	{
+		"kandi.Batch.Duration",
+		func(toTest *KandiConfig, label string, t *testing.T){
+			actual := toTest.Batch.Duration
+			if actual != time.Duration(5) * time.Millisecond {
+				t.Error(fmt.Sprintf("%s expected to be %s but found %s", label, time.Duration(5) * time.Millisecond, actual))
 			}
 		},
 	},
@@ -200,7 +216,7 @@ var InfluxConfigTests = []struct {
 		"influx.Timeout",
 		func(toTest *InfluxConfig, label string, t *testing.T){
 			actual := toTest.Timeout
-			if actual != time.Duration(1) * time.Second {
+			if actual != time.Duration(1) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 1s but found %s", label, actual))
 			}
 		},
@@ -297,7 +313,7 @@ var KafkaConfigTests = []struct {
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.Offsets.Initial
 			if actual != sarama.OffsetNewest {
-				t.Error(fmt.Sprintf("%s expected to be newest but found %d", label, actual))
+				t.Error(fmt.Sprintf("%s expected to be oldest but found %d", label, actual))
 			}
 		},
 	},
@@ -305,7 +321,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.Offsets.Retention",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.Offsets.Retention
-			if actual != time.Duration(1) * time.Second {
+			if actual != time.Duration(1) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 1 second but found %d", label, actual))
 			}
 		},
@@ -314,7 +330,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.Offsets.CommitInterval",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.Offsets.CommitInterval
-			if actual !=  time.Duration(2) * time.Second {
+			if actual !=  time.Duration(2) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 2 seconds but found %d", label, actual))
 			}
 		},
@@ -332,7 +348,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.Retry.Backoff",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.Retry.Backoff
-			if actual !=  time.Duration(3) * time.Second {
+			if actual !=  time.Duration(3) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 3 seconds but found %d", label, actual))
 			}
 		},
@@ -341,7 +357,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.MaxWaitTime",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.MaxWaitTime
-			if actual !=  time.Duration(4) * time.Second {
+			if actual !=  time.Duration(4) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 4 seconds but found %d", label, actual))
 			}
 		},
@@ -350,7 +366,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.MaxProcessingTime",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Consumer.MaxProcessingTime
-			if actual !=  time.Duration(5) * time.Second {
+			if actual !=  time.Duration(5) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 5 seconds but found %d", label, actual))
 			}
 		},
@@ -395,7 +411,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Metadata.RefreshFrequency",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Metadata.RefreshFrequency
-			if actual !=  time.Duration(11) * time.Second {
+			if actual !=  time.Duration(11) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 11 seconds but found %d", label, actual))
 			}
 		},
@@ -404,7 +420,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Net.WriteTimeout",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Net.WriteTimeout
-			if actual != 12 * time.Second {
+			if actual != 12 * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 12 seconds but found %d", label, actual))
 			}
 		},
@@ -413,7 +429,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Net.KeepAlive",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Net.KeepAlive
-			if actual !=  time.Duration(13) * time.Second {
+			if actual !=  time.Duration(13) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 13 seconds but found %d", label, actual))
 			}
 		},
@@ -431,7 +447,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Net.ReadTimeout",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Net.ReadTimeout
-			if actual !=  time.Duration(15) * time.Second {
+			if actual !=  time.Duration(15) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 15 seconds but found %d", label, actual))
 			}
 		},
@@ -440,7 +456,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Net.DialTimeout",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Net.DialTimeout
-			if actual !=  time.Duration(16) * time.Second {
+			if actual !=  time.Duration(16) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 16 seconds but found %d", label, actual))
 			}
 		},
@@ -449,7 +465,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Net.DialTimeout",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Net.DialTimeout
-			if actual !=  time.Duration(16) * time.Second {
+			if actual !=  time.Duration(16) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 16 seconds but found %d", label, actual))
 			}
 		},
@@ -460,15 +476,6 @@ var KafkaConfigTests = []struct {
 			actual := toTest.Cluster.ClientID
 			if actual != "test-client-id" {
 				t.Error(fmt.Sprintf("%s expected to be test-client-id but found %d", label, actual))
-			}
-		},
-	},
-	{
-		"kafka.Cluster.ChannelBufferSize",
-		func(toTest *KafkaConfig, label string, t *testing.T){
-			actual := toTest.Cluster.ChannelBufferSize
-			if actual != 17 {
-				t.Error(fmt.Sprintf("%s expected to be 17s but found %d", label, actual))
 			}
 		},
 	},
@@ -503,7 +510,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Group.Heartbeat.Interval",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Group.Heartbeat.Interval
-			if actual !=  time.Duration(19) * time.Second {
+			if actual !=  time.Duration(19) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 19 seconds but found %d", label, actual))
 			}
 		},
@@ -512,15 +519,24 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Group.Session.Timeout",
 		func(toTest *KafkaConfig, label string, t *testing.T){
 			actual := toTest.Cluster.Group.Session.Timeout
-			if actual !=  time.Duration(20) * time.Second {
+			if actual !=  time.Duration(20) * time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be 20 seconds but found %d", label, actual))
+			}
+		},
+	},
+	{
+		"kafka.Cluster.ChannelBufferSize",
+		func(toTest *KafkaConfig, label string, t *testing.T){
+			actual := toTest.Cluster.ChannelBufferSize
+			if actual != 8 {
+				t.Error(fmt.Sprintf("%s expected to be 8 seconds but found %d", label, actual))
 			}
 		},
 	},
 }
 
 func Test_InfluxConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
-	sut := load(TestInfluxConfig)
+	sut := load(TestConfig)
 	for _, test := range InfluxConfigTests {
 		t.Run(test.label, func(t *testing.T){
 			test.test(sut.Influx, test.label, t)
@@ -529,7 +545,7 @@ func Test_InfluxConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
 }
 
 func Test_KafkaConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
-	sut := load(TestKafkaConfig)
+	sut := load(TestConfig)
 	for _, test := range KafkaConfigTests {
 		t.Run(test.label, func(t *testing.T){
 			test.test(sut.Kafka, test.label, t)
@@ -538,7 +554,7 @@ func Test_KafkaConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
 }
 
 func Test_KandiConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
-	sut := load(TestKandiConfig)
+	sut := load(TestConfig)
 	for _, test := range KandiConfigConfigTests {
 		t.Run(test.label, func(t *testing.T){
 			test.test(sut.Kandi, test.label, t)

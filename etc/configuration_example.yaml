@@ -1,22 +1,31 @@
+influx:
+  Url: my-test-url:8082
+  User: fred
+  Password: fredspassword
+  Timeout: 1
+  UserAgent: meh
+  Database: test-db
+  Precision: test-precision
+  RetentionPolicy: mypolicy
+  WriteConsistency: anywrite
+
 kandi:
   backoff:
     max: 1
-    reset: 30
-    inital: 1
-
-influx:
-  url: my-test-url:8082
-  user: fred
-  password: fredspassword
-  timeout: 1
-  userAgent: meh
-  database: test-db
-  precision: test-precision
+    interval: 2
+    reset: 3
+  batch:
+    size: 4
+    duration: 5
 
 kafka:
+  brokers: test-url:9092
+  topics: test-topics
+  consumerGroup: test-consumer-group
+  loggingEnabled: true
   consumer:
     offsets:
-      initial: 99
+      initial: newest
       retention: 1
       commitInterval: 2
     return:
@@ -30,11 +39,11 @@ kafka:
       min: 7
       default: 8
   metadata:
-    Rretry:
+    retry:
       max: 9
       backoff: 10
     refreshFrequency: 11
-  Version: 4-4-4-4
+  version: 4-4-4-4
   net:
     writeTimeout: 12
     keepAlive: 13
@@ -42,7 +51,6 @@ kafka:
     readTimeout: 15
     dialTimeout: 16
   clientID: test-client-id
-  channelBufferSize: 17
   group:
     return:
       notifications: true

@@ -1,180 +1,149 @@
 package main
 
 import (
-	"fmt"
 	"testing"
+	"net/http/httptest"
+	"net/http"
+	"fmt"
+	"time"
+	"io/ioutil"
+	"strings"
 )
 
-var IntegrationTestInfluxConfig = []byte(`
-Brokers: localhost:9082
-influx:
-  Url: http://localhost:8082
-  User: fred
-  Password: fredspassword
-  Timeout: 1
-  UserAgent: meh
-  Database: test-db
-  Precision: test-precision
-`)
-
-type KandiTests struct {
-		label				string
-		input 				[]string
-		expectedSent			[]string
-		expectedCommitted		[]string
-		expectedError			error
-		batchSize			int
+type InfluxResponse struct {
+	message 			string
+	status 				int
 }
 
-var Kandi_Consume_Tests = []KandiTests{
+type Test_Kafka_Messages struct {
+	pointsToReturn			[]string
+	expectedOffsets			[]string
+	expectedSent			[]string
+}
+
+type KandiTestSuite struct {
+	label 								string
+	influxHandler						func(w http.ResponseWriter, r *http.Request)
+	pointsToReturn						[]string
+	expectedMessagesOffsetCommitted		[]string
+	expectedMessagesSentToInflux		[]string
+	expectedErrorReturned 				error
+}
+
+var KandiTestCases = []KandiTestSuite{
 	{
-		"When Processing Valid Points",
+		"Should Send and Commit Offset For Valid Points",
+		func(w http.ResponseWriter, r *http.Request){},
 		[]string{
 			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
 			"service.non-heap.usage,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=non-heap.usage value=-119670848.0 1501096898000000000",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
 		},
 		[]string{
 			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
 			"service.non-heap.usage,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=non-heap.usage value=-119670848.0 1501096898000000000",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
 		},
 		[]string{
 			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
 			"service.non-heap.usage,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=non-heap.usage value=-119670848.0 1501096898000000000",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
+			
 		},
 		EndOfTest,
-		3,
 	},
 	{
-		"When Processing An Invalid Point",
-		[]string{
-			"fake",
-		},
+		"Should Commit Offset But Not Send to Influx Points Encountering Parse Failures",
+		func(w http.ResponseWriter, r *http.Request){},
+		[]string{ "Will not be able to parse", },
+		[]string{ "Will not be able to parse", },
 		[]string{},
-		[]string{
-			"fake",
-		},
 		EndOfTest,
-		1,
-	},
-	{
-		"When Processing An Invalid Point Between Two Valid Points",
-		[]string{
-			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
-			"fake",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
-		},
-		[]string{
-			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
-		},
-		[]string{
-			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
-			"fake",
-			"service.counter.status.400.api.v4.styles,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=counter.status.400.api.v4.styles count=1.0 1501096898000000000",
-		},
-		EndOfTest,
-		2,
 	},
 }
 
-func assert_committed_offsets(sut *KandiApp, test KandiTests, t *testing.T) {
-	visited := make(map[string]bool)
-	for _, point := range test.expectedCommitted {
-		visited[point] = false
-	}
-	consumer := sut.Consumer.(*MockConsumer)
-	if len(test.expectedCommitted) > len(consumer.markedOffsets) {
-		t.Error(fmt.Sprintf("%s: assert_offsets_are_committed did not commit the proper number of offsets \n expected: %s, actual: %s\n", test.label, len(test.expectedCommitted), len(consumer.markedOffsets)))
-	}
-	for _, message := range consumer.markedOffsets {
-		if _, ok := visited[string(message.Value)]; !ok {
-			t.Error(fmt.Sprintf("%s: assert_offsets_are_committed did not commit message offset \n expected: %s\n", test.label, string(message.Value)))
-		}
-	}
+func NewKandiTestConfig(url string, batchSize int) (*Config) {
+	conf := &Config{Kandi:&KandiConfig{Batch:&Batch{}},Influx:&InfluxConfig{}, Kafka:&KafkaConfig{}}
+	conf.Influx.Database = "testdb"
+	conf.Influx.Precision = ""
+	conf.Influx.Url = url
+	conf.Influx.RetentionPolicy = ""
+	conf.Influx.WriteConsistency = "any"
+	conf.Influx.BatchSize = 1
+	conf.Influx.User = "user"
+	conf.Influx.Password = "pass"
+	conf.Influx.UserAgent = "agent"
+	conf.Influx.Timeout = time.Duration(5) * time.Millisecond
+	conf.Kandi.Batch.Size = batchSize
+	return conf
 }
 
-func assert_consumer_closed(sut *KandiApp, test KandiTests, t *testing.T) {
-	if !sut.Consumer.(*MockConsumer).closed {
-		t.Error(fmt.Sprintf("%s: assert_consumer_closed did not close the consumer properly", test.label))
-	}
-}
+func TestKandi(t *testing.T) {
+	for _, testCase := range KandiTestCases {
+		t.Run(testCase.label, func(t *testing.T){
 
-func assert_written_to_influx(sut *KandiApp, test KandiTests, t *testing.T) {
-	actual := sut.Influx.Client.(*MockClient).sent
-	if len(actual) == 0 && len(test.expectedSent) > 0 {
-		t.Error(fmt.Sprintf("%s: assert_points_sent_to_influx: Points, expected: %v, actual: %v", test.label, len(test.expectedSent), len(actual)))
-	} else if len(actual) > 0 {
-		visited := make(map[string]bool)
-		for _, expectedPoint := range test.expectedSent {
-			visited[expectedPoint] = false
-		}
-		for _, batch := range actual {
-			for _, point := range batch.Points() {
-				if _, ok := visited[point.String()]; !ok {
-					t.Error(fmt.Sprintf("%s: assert_points_sent_to_influx did not send expected point \n expected: %s\n", test.label, point.String()))
-				}
-			}
-		}
-	}
-}
+			influxHandler := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+				testCase.AssertBatchSentToInflux(t, w, r)
+				testCase.influxHandler(w, r)
+			}))
+			defer influxHandler.Close()
 
-func assert_error(actual error, test KandiTests, t *testing.T) {
-	if actual.Error() != test.expectedError.Error() {
-		t.Fatal(fmt.Sprintf("%s: assert_response_error: actual: %s, expected: %s", test.label, actual.Error(), test.expectedError.Error()))
-	}
-}
+			conf := NewKandiTestConfig(influxHandler.URL, len(testCase.pointsToReturn))
+			influx := &Influx{conf.Influx}
+			influx.config.Precision = "ns"
+			sut := &Kandi{conf, NewMockConsumer(testCase.pointsToReturn), influx}
+			sut.conf.Influx.Url = influxHandler.URL
+			fmt.Println(influxHandler.URL)
 
-func assert_batch(sut *KandiApp, test KandiTests, t *testing.T) {
-	acutal := sut.Influx.Client.(*MockClient).sent
-	pointsRemaining := test.batchSize
-	for _, batch := range acutal {
-		if batch.Database() != "mydb" {
-			t.Error(fmt.Sprintf("%s: did not set database for batch points. exected: %s, actual: %s", test.label, "mydb", batch.Database()))
-		}
-		if batch.Precision() != "s" {
-			t.Error(fmt.Sprintf("%s: did not set precision for batch points. exected: %s, actual: %s", test.label, "s", batch.Precision()))
-		}
-		if batch.WriteConsistency() != "any" {
-			t.Error("%s: did not set write consistency for batch points. exected: %s, actual: %s", test.label, "any", batch.WriteConsistency())
-		}
-		if batch.RetentionPolicy() != "autogen" {
-			t.Error(fmt.Sprintf("%s: did not set retention policy for batch points. exected: %s, actual: %s", test.label, "autogen", batch.RetentionPolicy()))
-		}
-		if len(batch.Points()) > test.batchSize {
-			t.Error(fmt.Sprintf("%s: had bach size greater than expected. exected: %d, actual: %d", test.label, test.batchSize, len(batch.Points())))
-		}
-		if len(batch.Points()) < test.batchSize && pointsRemaining >= test.batchSize {
-			t.Error(fmt.Sprintf("%s: batched less than expected size. exected: %d, actual: %d", test.label, test.batchSize, len(batch.Points())))
-		}
-		pointsRemaining = pointsRemaining - len(batch.Points())
-	}
-}
+			actual := sut.Start()
 
-func Test_Should_Consume_Messages_And_Write_Points_To_Influx(t *testing.T) {
-	for _, test := range Kandi_Consume_Tests {
-		t.Run(test.label, func(t *testing.T){
-			consumer := &MockConsumer{}
-			client := &MockClient{nil, nil}
-
-			conf := &Config{}
-			conf.Influx = &InfluxConfig{Database: "mydb", Precision:"s", WriteConsistency:"any", RetentionPolicy:"autogen", BatchSize:test.batchSize}
-			influx := &Influx{influxConfig: conf.Influx, Client: client}
-
-			sut := &KandiApp{conf, consumer, influx, NewParser()}
-
-			consumer.pointsToReturn = test.input
-			consumer.errorToReturn = test.expectedError
-
-			actual := sut.Start(conf)
-
-			assert_error(actual, test, t)
-			assert_written_to_influx(sut, test, t)
-			assert_committed_offsets(sut, test, t)
-			assert_consumer_closed(sut, test, t)
-			assert_batch(sut, test, t)
+			testCase.AssertExpectedError(actual, t)
+			testCase.AssertOffsetsCommitted(sut, t)
+			testCase.AssertConsumerClosed(sut, t)
 		})
 	}
+}
+
+func (suite *KandiTestSuite) AssertExpectedError(actual error, t *testing.T) {
+	if actual.Error() != suite.expectedErrorReturned.Error() {
+		t.Fatal(fmt.Sprintf("%s: assert_response_error: actual: %s, expected: %s", suite.label, actual.Error(), suite.expectedErrorReturned.Error()))
+	}
+}
+
+func (suite *KandiTestSuite) AssertConsumerClosed(sut *Kandi, t *testing.T) {
+	if !sut.Consumer.(*MockConsumer).closed {
+		t.Error(fmt.Sprintf("%s: assert_consumer_closed did not close the consumer properly", suite.label))
+	}
+}
+
+func (suite *KandiTestSuite) AssertOffsetsCommitted(sut *Kandi, t *testing.T) {
+	consumer := sut.Consumer.(*MockConsumer)
+	visited := make(map[string]bool)
+	for _, message := range consumer.markedOffsets {
+		if message != nil {
+			visited[string(message.Value)] = false
+		}
+	}
+	for _, point := range suite.expectedMessagesOffsetCommitted {
+		if _, ok := visited[point]; !ok {
+			t.Error(fmt.Sprintf("%s: offsets committed did not commit message offset as expected.\n expected: %s\n", suite.label, point))
+		}
+	}
+}
+
+func (suite *KandiTestSuite) AssertBatchSentToInflux(t *testing.T, w http.ResponseWriter, r *http.Request) () {
+	body, _ := ioutil.ReadAll(r.Body)
+	bodyString := string(body)
+	for _, actual := range strings.Split(bodyString, "\n") {
+		if actual == "" {
+			break
+		}
+		found := false
+		for _, expected := range suite.expectedMessagesSentToInflux {
+			if strings.Contains(actual, expected) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error(fmt.Sprintf("%s: Message sent to Influx was not expected.\n\tactual: %s", suite.label, actual))
+		}
+ 	}
 }
