@@ -1,17 +1,17 @@
 package main
 
 import (
-	"time"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type BackoffHandler struct {
-	conf 			*Config
-	last 			time.Time
-	currentBackoff	time.Duration
+	conf           *Config
+	last           time.Time
+	currentBackoff time.Duration
 }
 
-func NewBackoffHandler(conf *Config) (*BackoffHandler) {
+func NewBackoffHandler(conf *Config) *BackoffHandler {
 	return &BackoffHandler{conf, time.Now(), conf.Kandi.Backoff.Interval}
 }
 
@@ -32,17 +32,16 @@ func (handler *BackoffHandler) reset() {
 }
 
 func (handler *BackoffHandler) do() {
-	log.WithFields(log.Fields{"time":handler.currentBackoff}).Info("Backing off")
+	log.WithFields(log.Fields{"time": handler.currentBackoff}).Info("Backing off")
 	MetricBackoff.Add(1)
 	handler.last = time.Now()
 	time.Sleep(handler.currentBackoff)
 }
 
 func (handler *BackoffHandler) update() {
-	if handler.conf.Kandi.Backoff.Max > 0 && handler.currentBackoff * 2 >= handler.conf.Kandi.Backoff.Max {
+	if handler.conf.Kandi.Backoff.Max > 0 && handler.currentBackoff*2 >= handler.conf.Kandi.Backoff.Max {
 		handler.currentBackoff = handler.conf.Kandi.Backoff.Max
 	} else {
 		handler.currentBackoff = handler.currentBackoff * 2
 	}
 }
-

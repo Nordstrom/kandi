@@ -1,42 +1,42 @@
 package main
 
 import (
-	"github.com/spf13/viper"
-	"time"
-	"github.com/bsm/sarama-cluster"
 	"bytes"
 	"github.com/Shopify/sarama"
-	"os"
-	saramaLog "log"
-	"io/ioutil"
-	log "github.com/sirupsen/logrus"
-	"strings"
+	"github.com/bsm/sarama-cluster"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"io/ioutil"
+	saramaLog "log"
+	"os"
+	"strings"
+	"time"
 )
 
 type Batch struct {
-	Size 		int
-	Duration	time.Duration
+	Size     int
+	Duration time.Duration
 }
 
 type Backoff struct {
-	Max 		time.Duration
-	Interval	time.Duration
-	Reset 		time.Duration
+	Max      time.Duration
+	Interval time.Duration
+	Reset    time.Duration
 }
 
 type KandiConfig struct {
-	Backoff 	*Backoff
-	Batch 		*Batch
+	Backoff *Backoff
+	Batch   *Batch
 }
 
 type Config struct {
-	Kandi		*KandiConfig
-	Kafka		*KafkaConfig
-	Influx		*InfluxConfig
+	Kandi  *KandiConfig
+	Kafka  *KafkaConfig
+	Influx *InfluxConfig
 }
 
-func load(input []byte) (*Config) {
+func load(input []byte) *Config {
 	viper.SetEnvPrefix("KANDI")
 	viper.AutomaticEnv()
 	viper.SetConfigType("yaml")
@@ -47,7 +47,7 @@ func load(input []byte) (*Config) {
 	return &Config{NewKandiConfig(), NewKafkaConfig(), NewInfluxConfig()}
 }
 
-func NewConfig() (*Config) {
+func NewConfig() *Config {
 	path := os.Getenv("K2I_CONFIG.PATH")
 	if path == "" {
 		path = "./etc/configuration_example.yaml"
@@ -61,7 +61,7 @@ func NewConfig() (*Config) {
 	return load(file)
 }
 
-func NewKandiConfig() (*KandiConfig) {
+func NewKandiConfig() *KandiConfig {
 	conf := &KandiConfig{&Backoff{}, &Batch{}}
 	if value, ok := viper.Get("kandi.backoff.max").(int); ok {
 		conf.Backoff.Max = time.Duration(value) * time.Millisecond
@@ -80,19 +80,31 @@ func NewKandiConfig() (*KandiConfig) {
 	}
 	if value, ok := viper.Get("kandi.loglevel").(string); ok {
 		switch strings.ToLower(value) {
-		case "debug":log.SetLevel(log.DebugLevel); break
-		case "info":log.SetLevel(log.InfoLevel); break
-		case "warn":log.SetLevel(log.WarnLevel); break
-		case "error":log.SetLevel(log.ErrorLevel); break
-		case "fatal":log.SetLevel(log.FatalLevel); break
-		case "panic":log.SetLevel(log.PanicLevel); break
+		case "debug":
+			log.SetLevel(log.DebugLevel)
+			break
+		case "info":
+			log.SetLevel(log.InfoLevel)
+			break
+		case "warn":
+			log.SetLevel(log.WarnLevel)
+			break
+		case "error":
+			log.SetLevel(log.ErrorLevel)
+			break
+		case "fatal":
+			log.SetLevel(log.FatalLevel)
+			break
+		case "panic":
+			log.SetLevel(log.PanicLevel)
+			break
 		}
 	}
 
 	return conf
 }
 
-func NewInfluxConfig() (*InfluxConfig) {
+func NewInfluxConfig() *InfluxConfig {
 	conf := &InfluxConfig{}
 	if value, ok := viper.Get("influx.url").(string); ok {
 		conf.Url = value
@@ -124,7 +136,7 @@ func NewInfluxConfig() (*InfluxConfig) {
 	return conf
 }
 
-func NewKafkaConfig() (*KafkaConfig) {
+func NewKafkaConfig() *KafkaConfig {
 	conf := KafkaConfig{Cluster: cluster.NewConfig()}
 
 	if value, ok := viper.Get("kafka.brokers").(string); ok {
@@ -152,11 +164,20 @@ func NewKafkaConfig() (*KafkaConfig) {
 	}
 	if value, ok := viper.Get("kafka.version").(string); ok {
 		switch value {
-		case "V0_10_0_0" : conf.Cluster.Version = sarama.V0_10_0_0; break
-		case "V0_10_0_1": conf.Cluster.Version = sarama.V0_10_0_1; break
-		case "V0_10_1_0": conf.Cluster.Version = sarama.V0_10_1_0; break
-		case "V0_10_2_0": conf.Cluster.Version = sarama.V0_10_2_0; break
-		default : conf.Cluster.Version = sarama.V0_10_2_0
+		case "V0_10_0_0":
+			conf.Cluster.Version = sarama.V0_10_0_0
+			break
+		case "V0_10_0_1":
+			conf.Cluster.Version = sarama.V0_10_0_1
+			break
+		case "V0_10_1_0":
+			conf.Cluster.Version = sarama.V0_10_1_0
+			break
+		case "V0_10_2_0":
+			conf.Cluster.Version = sarama.V0_10_2_0
+			break
+		default:
+			conf.Cluster.Version = sarama.V0_10_2_0
 		}
 	}
 	if value, ok := viper.Get("kafka.consumer.offsets.retention").(int); ok {

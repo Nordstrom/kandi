@@ -2,18 +2,18 @@ package main
 
 import (
 	"github.com/Shopify/sarama"
+	influx "github.com/influxdata/influxdb/client/v2"
 	log "github.com/sirupsen/logrus"
 	"time"
-	influx "github.com/influxdata/influxdb/client/v2"
 )
 
 type Kandi struct {
-	conf 		*Config
-	Consumer	Consumer
-	Influx		*Influx
+	conf     *Config
+	Consumer Consumer
+	Influx   *Influx
 }
 
-func (k *Kandi) initialize() (error) {
+func (k *Kandi) initialize() error {
 	if k.Consumer == nil {
 		consumer, err := NewKafkaConsumer(k.conf.Kafka)
 		if err != nil {
@@ -26,7 +26,7 @@ func (k *Kandi) initialize() (error) {
 	return nil
 }
 
-func (k *Kandi) Start() (error) {
+func (k *Kandi) Start() error {
 	err := k.initialize()
 	if err != nil {
 		return err

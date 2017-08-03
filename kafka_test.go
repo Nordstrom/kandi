@@ -1,26 +1,26 @@
 package main
 
 import (
-	"github.com/Shopify/sarama"
-	"time"
 	"errors"
+	"github.com/Shopify/sarama"
 	"testing"
+	"time"
 )
 
 var EndOfTest = errors.New("EndOfTest")
 
 type MockConsumer struct {
-	pointReturnedIndex				int
-	pointsToReturn 					[]string
-	markedOffsets					[]*sarama.ConsumerMessage
-	closed							bool
+	pointReturnedIndex int
+	pointsToReturn     []string
+	markedOffsets      []*sarama.ConsumerMessage
+	closed             bool
 }
 
-func NewMockConsumer(pointsToReturn []string) (*MockConsumer) {
+func NewMockConsumer(pointsToReturn []string) *MockConsumer {
 	return &MockConsumer{0, pointsToReturn, make([]*sarama.ConsumerMessage, 1), false}
 }
 
-func (c *MockConsumer) Consume() (*sarama.ConsumerMessage,  error) {
+func (c *MockConsumer) Consume() (*sarama.ConsumerMessage, error) {
 	if c.pointReturnedIndex < len(c.pointsToReturn) {
 		messagee := &sarama.ConsumerMessage{Value: []byte(c.pointsToReturn[c.pointReturnedIndex]), Offset: int64(c.pointReturnedIndex), Timestamp: time.Now()}
 		c.pointReturnedIndex += 1
@@ -29,7 +29,7 @@ func (c *MockConsumer) Consume() (*sarama.ConsumerMessage,  error) {
 	return nil, EndOfTest
 }
 
-func (c *MockConsumer) Close() () {
+func (c *MockConsumer) Close() {
 	c.closed = true
 }
 

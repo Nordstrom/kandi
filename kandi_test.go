@@ -1,39 +1,39 @@
 package main
 
 import (
-	"testing"
-	"net/http/httptest"
-	"net/http"
 	"fmt"
-	"time"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"testing"
+	"time"
 )
 
 type InfluxResponse struct {
-	message 			string
-	status 				int
+	message string
+	status  int
 }
 
 type Test_Kafka_Messages struct {
-	pointsToReturn			[]string
-	expectedOffsets			[]string
-	expectedSent			[]string
+	pointsToReturn  []string
+	expectedOffsets []string
+	expectedSent    []string
 }
 
 type KandiTestSuite struct {
-	label 								string
-	influxHandler						func(w http.ResponseWriter, r *http.Request)
-	pointsToReturn						[]string
-	expectedMessagesOffsetCommitted		[]string
-	expectedMessagesSentToInflux		[]string
-	expectedErrorReturned 				error
+	label                           string
+	influxHandler                   func(w http.ResponseWriter, r *http.Request)
+	pointsToReturn                  []string
+	expectedMessagesOffsetCommitted []string
+	expectedMessagesSentToInflux    []string
+	expectedErrorReturned           error
 }
 
 var KandiTestCases = []KandiTestSuite{
 	{
 		"Should Send and Commit Offset For Valid Points",
-		func(w http.ResponseWriter, r *http.Request){},
+		func(w http.ResponseWriter, r *http.Request) {},
 		[]string{
 			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
 			"service.non-heap.usage,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=non-heap.usage value=-119670848.0 1501096898000000000",
@@ -45,22 +45,21 @@ var KandiTestCases = []KandiTestSuite{
 		[]string{
 			"service.pools.PS-Eden-Space.used,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=pools.PS-Eden-Space.used value=308367096.0 1501096898000000000",
 			"service.non-heap.usage,app.type=product.service,build=802-master,cluster=undefined,data.center=undefined,host=172.22.78.51,metricName=non-heap.usage value=-119670848.0 1501096898000000000",
-			
 		},
 		EndOfTest,
 	},
 	{
 		"Should Commit Offset But Not Send to Influx Points Encountering Parse Failures",
-		func(w http.ResponseWriter, r *http.Request){},
-		[]string{ "Will not be able to parse", },
-		[]string{ "Will not be able to parse", },
+		func(w http.ResponseWriter, r *http.Request) {},
+		[]string{"Will not be able to parse"},
+		[]string{"Will not be able to parse"},
 		[]string{},
 		EndOfTest,
 	},
 }
 
-func NewKandiTestConfig(url string, batchSize int) (*Config) {
-	conf := &Config{Kandi:&KandiConfig{Batch:&Batch{}},Influx:&InfluxConfig{}, Kafka:&KafkaConfig{}}
+func NewKandiTestConfig(url string, batchSize int) *Config {
+	conf := &Config{Kandi: &KandiConfig{Batch: &Batch{}}, Influx: &InfluxConfig{}, Kafka: &KafkaConfig{}}
 	conf.Influx.Database = "testdb"
 	conf.Influx.Precision = ""
 	conf.Influx.Url = url
@@ -77,9 +76,9 @@ func NewKandiTestConfig(url string, batchSize int) (*Config) {
 
 func TestKandi(t *testing.T) {
 	for _, testCase := range KandiTestCases {
-		t.Run(testCase.label, func(t *testing.T){
+		t.Run(testCase.label, func(t *testing.T) {
 
-			influxHandler := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+			influxHandler := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				testCase.AssertBatchSentToInflux(t, w, r)
 				testCase.influxHandler(w, r)
 			}))
@@ -128,7 +127,7 @@ func (suite *KandiTestSuite) AssertOffsetsCommitted(sut *Kandi, t *testing.T) {
 	}
 }
 
-func (suite *KandiTestSuite) AssertBatchSentToInflux(t *testing.T, w http.ResponseWriter, r *http.Request) () {
+func (suite *KandiTestSuite) AssertBatchSentToInflux(t *testing.T, w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(r.Body)
 	bodyString := string(body)
 	for _, actual := range strings.Split(bodyString, "\n") {
@@ -145,5 +144,5 @@ func (suite *KandiTestSuite) AssertBatchSentToInflux(t *testing.T, w http.Respon
 		if !found {
 			t.Error(fmt.Sprintf("%s: Message sent to Influx was not expected.\n\tactual: %s", suite.label, actual))
 		}
- 	}
+	}
 }

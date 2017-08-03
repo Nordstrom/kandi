@@ -8,18 +8,6 @@
   version = "v1.12.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/alecthomas/template"
-  packages = [".","parse"]
-  revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/alecthomas/units"
-  packages = ["."]
-  revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
-
-[[projects]]
   name = "github.com/bsm/sarama-cluster"
   packages = ["."]
   revision = "ccdc0803695fbce22f1706d04ded46cd518fd832"
@@ -60,6 +48,12 @@
   name = "github.com/golang/snappy"
   packages = ["."]
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
+
+[[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
 
 [[projects]]
   branch = "master"
@@ -111,12 +105,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/prometheus/common"
-  packages = ["log"]
-  revision = "61f87aac8082fa8c3c5655c7608d7478d46ac2ad"
-
-[[projects]]
-  branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
   revision = "1f30fe9094a513ce4c700b9a54458bbb0c96996c"
@@ -160,20 +148,14 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows","windows/registry","windows/svc/eventlog"]
-  revision = "0f826bdd13b500be0f1d4004938ad978fcc6031e"
+  packages = ["unix"]
+  revision = "d8f5ea21b9295e315e612b4bcf4bedea93454d4d"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
   revision = "3bd178b88a8180be2df394a1fbb81313916f0e7b"
-
-[[projects]]
-  name = "gopkg.in/alecthomas/kingpin.v2"
-  packages = ["."]
-  revision = "1087e65c9441605df944fb12c33f0fe7072d18ca"
-  version = "v2.2.5"
 
 [[projects]]
   branch = "v2"
@@ -184,6 +166,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "36b3470e2cbcf4968bf90ba7ef948e3e38891fca5abbcc48f5ee3b47f203d725"
+  inputs-digest = "e04503e581c7d42311dc79712f3370ab26185159a9975de314564e38f32976d4"
   solver-name = "gps-cdcl"
   solver-version = 1

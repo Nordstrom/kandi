@@ -1,18 +1,18 @@
 package main
 
 import (
-	"github.com/bsm/sarama-cluster"
-	"strings"
 	"github.com/Shopify/sarama"
+	"github.com/bsm/sarama-cluster"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 type KafkaConfig struct {
-	Brokers			string
-	Topics 			string
-	ConsumerGroup 	string
-	LoggingEnabled	bool
-	Cluster 		*cluster.Config
+	Brokers        string
+	Topics         string
+	ConsumerGroup  string
+	LoggingEnabled bool
+	Cluster        *cluster.Config
 }
 
 type Consumer interface {
@@ -22,18 +22,18 @@ type Consumer interface {
 }
 
 type KafkaConsumer struct {
-	userConfig		*KafkaConfig
-	Consumer		*cluster.Consumer
+	userConfig *KafkaConfig
+	Consumer   *cluster.Consumer
 }
 
 func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 	brokers := strings.Split(userConfig.Brokers, ",")
 	topics := strings.Split(userConfig.Topics, ",")
 
-	log.WithFields(log.Fields{"brokers":userConfig.Brokers,"topics":userConfig.Topics}).Debug("Creating new kafka consumer")
+	log.WithFields(log.Fields{"brokers": userConfig.Brokers, "topics": userConfig.Topics}).Debug("Creating new kafka consumer")
 	consumer, err := cluster.NewConsumer(brokers, userConfig.ConsumerGroup, topics, getClusterConfiguration(userConfig))
 	if err != nil {
-		log.WithFields(log.Fields{"brokers":userConfig.Brokers,"topics":userConfig.Topics}).WithError(err).Error("Error creating new kafka consumer")
+		log.WithFields(log.Fields{"brokers": userConfig.Brokers, "topics": userConfig.Topics}).WithError(err).Error("Error creating new kafka consumer")
 		return nil, err
 	}
 	return &KafkaConsumer{userConfig, consumer}, nil
@@ -70,7 +70,7 @@ func (c *KafkaConsumer) MarkOffset(messages []*sarama.ConsumerMessage) {
 	}
 }
 
-func getClusterConfiguration(userConfig *KafkaConfig) (*cluster.Config) {
+func getClusterConfiguration(userConfig *KafkaConfig) *cluster.Config {
 	log.Debug("Creating cluster configuration")
 	conf := cluster.NewConfig()
 	conf.Consumer.Return.Errors = true

@@ -1,10 +1,10 @@
 package main
 
 type MockBackoff struct {
-	backoffCounter 			int
+	backoffCounter int
 }
 
-func NewMockBackoff() (*MockBackoff) {
+func NewMockBackoff() *MockBackoff {
 	return &MockBackoff{}
 }
 
