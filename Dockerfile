@@ -1,4 +1,4 @@
 FROM scratch
 
-COPY bin/kandi /kandi
+COPY bin/release/kandi /kandi
 ENTRYPOINT ["/kandi"]
