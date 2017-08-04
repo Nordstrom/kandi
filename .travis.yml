@@ -11,7 +11,7 @@ deploy:
     secure: tQegVzQ/Vba16CZGMbKL48a1PL9l/ISxPk1ox6FYyXhb1zdk56Av6kGGoKq0hY8F+eApZg5ZTCfMz0rVXGLKSx2k4Vlwh8XHTfF6naxmrw1NYQx+dxeo2XYP/YXlld93l7uUrMpVtA9bkq+YoX4KjNR1JlH4/Tk+ZRg/cjt7ucyGfEcPfxsHwaiTAyxzvdDWg85dH8FPoFPvbYG9uPLFlFIjdvowRMBi+O4FiAt+xmd+0Hteg+JN6hsamepyXawtXs/4CFBntLUq71rqCZH8DXJSCOGEV+TMK6w+c5gATpIKyyTyBWTacyjnwla+OKlrDtw22URgnvnc7MQ0Rug7MDIW91ELZp1DSVWMG0WXkHs57Mc/oU/RMzDMrkLkl7d7ICtdfp40V1El3WIzuDB0lWZpffBARPkknHw2GtoI7MsWsgsXbtxItS9w0p23MJOekxb0aHTr2uVHS/20quOb+GMqL98l2maRTDNaki6Nl7euMcJNX831FVuoCaNBcWPPdSO63UNcjR0/hhqe4Jyt70RlSYjogSz+/z9zRSCJImVU6H0AFtxQ9Vwp3BKCwFmLVV85A9ft9Xhz2BWyKug8ImKNwgBBO35vJTIawwiKBaH7ZCQerzxSx99LEfyo+HpwbSq8SWBY4PO+PUojRnc7u3UghCm8xQCnl2kY6dL/zP4=
   file: bin/release/kandi
   on:
-    repo: Nordstrom/kani
+    repo: Nordstrom/kandi
     tags: true
   skip_cleanup: true
 after_deploy:
