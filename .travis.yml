@@ -4,7 +4,7 @@ services:
 go:
 - 1.8.x
 script:
-- make releases
+- make release
 deploy:
   provider: releases
   api_key:
