@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"fmt"
 )
 
 type Batch struct {
@@ -50,11 +51,12 @@ func load(input []byte) *Config {
 func NewConfig() *Config {
 	path := os.Getenv("K2I_CONFIG.PATH")
 	if path == "" {
-		path = "./etc/configuration_example.yaml"
+		path = "./etc/kandi/kandi.yaml"
 	}
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.WithError(err).WithField("Path", path).Error("Unable to read configuration at provided path.")
+		panic(fmt.Sprintf("Unable to find configuration at %s", path))
 	} else {
 		log.WithField("Path", path).Debug("Using initializing with provided configuration.")
 	}
