@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 var TestEnvInfluxConfig = []byte(`
@@ -34,6 +35,7 @@ kandi:
   batch:
     size: 4
     duration: 5
+  loglevel: debug
 
 kafka:
   brokers: test-url:9092
@@ -176,6 +178,15 @@ var KandiConfigConfigTests = []struct {
 			actual := toTest.Batch.Duration
 			if actual != time.Duration(5)*time.Millisecond {
 				t.Error(fmt.Sprintf("%s expected to be %s but found %s", label, time.Duration(5)*time.Millisecond, actual))
+			}
+		},
+	},
+	{
+		"kandi.loglevel",
+		func(toTest *KandiConfig, label string, t *testing.T) {
+			actual := log.GetLevel()
+			if actual != log.DebugLevel {
+				t.Error(fmt.Sprintf("%s expected to be %s but found %s", label, log.DebugLevel, actual))
 			}
 		},
 	},
