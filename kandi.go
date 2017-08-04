@@ -37,6 +37,7 @@ func (k *Kandi) Start() error {
 		log.Debug("Consuming Messages")
 		batch, messages, err := k.consumeMessages()
 		if err != nil {
+			MetricsKafkaConsumptionError.Add(1)
 			return err
 		}
 		log.Debug("Writing batch")

@@ -13,3 +13,4 @@ var MetricsKafkaInitializationFailure = expvar.NewInt("kafkaInitializationFailur
 var MetricFieldTypeConflict = expvar.NewInt("fieldTypeConflict")
 var MetricPartialWrite = expvar.NewInt("partialWrite")
 var MetricBatchDurationTaken = expvar.NewInt("batchDurationTakenNanoSec")
+var MetricsKafkaConsumptionError = expvar.NewInt("kafkaConsumptionError")
