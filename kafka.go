@@ -17,7 +17,7 @@ type KafkaConfig struct {
 
 type Consumer interface {
 	MarkOffset(message []*sarama.ConsumerMessage)
-	Consume() (*sarama.ConsumerMessage, error)
+	ConsumeMessage() (*sarama.ConsumerMessage, error)
 	Close()
 }
 
@@ -31,7 +31,7 @@ func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 	topics := strings.Split(userConfig.Topics, ",")
 
 	log.WithFields(log.Fields{"brokers": userConfig.Brokers, "topics": userConfig.Topics}).Debug("Creating new kafka consumer")
-	consumer, err := cluster.NewConsumer(brokers, userConfig.ConsumerGroup, topics, getClusterConfiguration(userConfig))
+	consumer, err := cluster.NewConsumer(brokers, userConfig.ConsumerGroup, topics, userConfig.Cluster)
 	if err != nil {
 		log.WithFields(log.Fields{"brokers": userConfig.Brokers, "topics": userConfig.Topics}).WithError(err).Error("Error creating new kafka consumer")
 		return nil, err
@@ -39,7 +39,7 @@ func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 	return &KafkaConsumer{userConfig, consumer}, nil
 }
 
-func (c *KafkaConsumer) Consume() (*sarama.ConsumerMessage, error) {
+func (c *KafkaConsumer) ConsumeMessage() (*sarama.ConsumerMessage, error) {
 	select {
 	case msg, more := <-c.Consumer.Messages():
 		if more {
@@ -68,12 +68,4 @@ func (c *KafkaConsumer) MarkOffset(messages []*sarama.ConsumerMessage) {
 			c.Consumer.MarkOffset(message, "")
 		}
 	}
-}
-
-func getClusterConfiguration(userConfig *KafkaConfig) *cluster.Config {
-	log.Debug("Creating cluster configuration")
-	conf := cluster.NewConfig()
-	conf.Consumer.Return.Errors = true
-	conf.Group.Return.Notifications = true
-	return conf
 }

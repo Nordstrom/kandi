@@ -550,6 +550,7 @@ func Test_InfluxConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
 	sut := load(TestConfig)
 	for _, test := range InfluxConfigTests {
 		t.Run(test.label, func(t *testing.T) {
+			log.SetLevel(log.PanicLevel)
 			test.test(sut.Influx, test.label, t)
 		})
 	}
@@ -559,6 +560,7 @@ func Test_KafkaConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
 	sut := load(TestConfig)
 	for _, test := range KafkaConfigTests {
 		t.Run(test.label, func(t *testing.T) {
+			log.SetLevel(log.PanicLevel)
 			test.test(sut.Kafka, test.label, t)
 		})
 	}
@@ -576,6 +578,7 @@ func Test_KandiConfig_Configuration_Yaml_Is_Properly_Loaded(t *testing.T) {
 func Test_environment_override(t *testing.T) {
 	for _, test := range EnvironmentConfigTests {
 		test.loadEnv()
+		log.SetLevel(log.PanicLevel)
 		sut := load(TestEnvInfluxConfig)
 		test.test(sut.Influx, test.label, t)
 		test.removeEnv()

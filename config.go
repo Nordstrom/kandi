@@ -16,7 +16,7 @@ import (
 )
 
 type Batch struct {
-	Size     int
+	Size     int64
 	Duration time.Duration
 }
 
@@ -75,7 +75,7 @@ func NewKandiConfig() *KandiConfig {
 		conf.Backoff.Reset = time.Duration(value) * time.Millisecond
 	}
 	if value, ok := viper.Get("kandi.batch.size").(int); ok {
-		conf.Batch.Size = value
+		conf.Batch.Size = int64(value)
 	}
 	if value, ok := viper.Get("kandi.batch.duration").(int); ok {
 		conf.Batch.Duration = time.Duration(value) * time.Millisecond
@@ -265,5 +265,7 @@ func NewKafkaConfig() *KafkaConfig {
 	if value, ok := viper.Get("kafka.group.session.timeout").(int); ok {
 		conf.Cluster.Group.Session.Timeout = time.Duration(value) * time.Millisecond
 	}
+	conf.Cluster.Consumer.Return.Errors = true
+	conf.Cluster.Group.Return.Notifications = true
 	return &conf
 }

@@ -43,10 +43,11 @@ func (i *Influx) Write(batch influx.BatchPoints) error {
 				MetricFieldTypeConflict.Add(1)
 				return nil
 			}
-			MetricWriteAttemptFailure.Add(1)
+			log.WithField("points", len(batch.Points())).Error("Error while writing points")
+			MetricsInfluxWriteFailure.Add(1)
 			return err
 		}
-		MetricPointsWritten.Add(int64(len(batch.Points())))
+		MetricsInfluxWriteSuccess.Add(int64(len(batch.Points())))
 	}
 	return nil
 }
@@ -81,13 +82,16 @@ func (i *Influx) ParseMessages(messages []*sarama.ConsumerMessage) influx.BatchP
 }
 
 func (i *Influx) ParseMessage(message *sarama.ConsumerMessage) (*influx.Point, error) {
-	point, err := models.ParsePointsWithPrecision(message.Value, time.Now().UTC(), i.config.Precision)
-	if err != nil || len(point) == 0 {
-		log.Debug("Failed to parse message")
-		MetricPointsParseFailure.Add(1)
-		return nil, err
+	if message != nil && message.Value != nil {
+		point, err := models.ParsePointsWithPrecision(message.Value, time.Now().UTC(), i.config.Precision)
+		if err != nil || len(point) == 0 {
+			log.WithError(err).Debug("Failed to parse message")
+			MetricsInfluxParseFailure.Add(1)
+			return nil, err
+		}
+		return influx.NewPointFrom(point[0]), nil
 	}
-	return influx.NewPointFrom(point[0]), nil
+	return nil, nil
 }
 
 func (i *Influx) NewBatch() (influx.BatchPoints, error) {

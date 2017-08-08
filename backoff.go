@@ -6,13 +6,14 @@ import (
 )
 
 type BackoffHandler struct {
+	name 		   string
 	conf           *Config
 	last           time.Time
 	currentBackoff time.Duration
 }
 
-func NewBackoffHandler(conf *Config) *BackoffHandler {
-	return &BackoffHandler{conf, time.Now(), conf.Kandi.Backoff.Interval}
+func NewBackoffHandler(name string, conf *Config) *BackoffHandler {
+	return &BackoffHandler{name, conf, time.Now(), conf.Kandi.Backoff.Interval}
 }
 
 func (handler *BackoffHandler) Handle() {
@@ -32,8 +33,8 @@ func (handler *BackoffHandler) reset() {
 }
 
 func (handler *BackoffHandler) do() {
-	log.WithFields(log.Fields{"time": handler.currentBackoff}).Info("Backing off")
-	MetricBackoff.Add(1)
+	log.WithField("name", handler.name).WithFields(log.Fields{"time": handler.currentBackoff}).Info("Backing off")
+	MetricsBackoff(handler.name)
 	handler.last = time.Now()
 	time.Sleep(handler.currentBackoff)
 }
