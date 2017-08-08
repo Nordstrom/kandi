@@ -192,14 +192,6 @@ var KandiProcessValidRepsonseTestCases = []KandiTestSuite{
 		nil,
 		1,
 	},
-	{
-		"Should Commit Offset But Not Send to Influx Points Encountering Parse Failures",
-		[]string{"Will not be able to parse"},
-		[]string{"Will not be able to parse"},
-		[]string{},
-		nil,
-		2,
-	},
 }
 
 func Test_Should_Process_Messages_To_Influx_With_Valid_Response(t *testing.T) {
