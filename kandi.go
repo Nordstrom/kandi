@@ -133,6 +133,6 @@ func (k *Kandi) toInflux(batchOfMessages []*sarama.ConsumerMessage) error {
 	}
 
 	k.Consumer.MarkOffset(batchOfMessages)
-	MetricsInfluxDuration.Add(time.Since(startTime).Nanoseconds())
+	MetricsInfluxProcessDuration.Add(time.Since(startTime).Nanoseconds())
 	return nil
 }

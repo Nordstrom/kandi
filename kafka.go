@@ -34,6 +34,7 @@ func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 	consumer, err := cluster.NewConsumer(brokers, userConfig.ConsumerGroup, topics, userConfig.Cluster)
 	if err != nil {
 		log.WithFields(log.Fields{"brokers": userConfig.Brokers, "topics": userConfig.Topics}).WithError(err).Error("Error creating new kafka consumer")
+		MetricsKafkaInitializationFailure.Add(1)
 		return nil, err
 	}
 	return &KafkaConsumer{userConfig, consumer}, nil

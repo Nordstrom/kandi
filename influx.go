@@ -37,10 +37,10 @@ func (i *Influx) Write(batch influx.BatchPoints) error {
 		err = client.Write(batch)
 		if err != nil {
 			if strings.Contains(err.Error(), "partial write") {
-				MetricPartialWrite.Add(1)
+				MetricInfluxPartialWrite.Add(1)
 				return nil
 			} else if strings.Contains(err.Error(), "field type conflict") {
-				MetricFieldTypeConflict.Add(1)
+				MetricInfluxFieldTypeConflict.Add(1)
 				return nil
 			}
 			log.WithField("points", len(batch.Points())).Error("Error while writing points")
