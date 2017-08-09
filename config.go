@@ -159,9 +159,9 @@ func NewKafkaConfig() *KafkaConfig {
 	//conf.Cluster.Version = sarama.KafkaVersion{viper.Get("kafka.Version").(int64)}
 	if value, ok := viper.Get("kafka.consumer.offsets.initial").(string); ok {
 		if value == "oldest" {
-			conf.Cluster.Consumer.Offsets.Initial = sarama.OffsetNewest
-		} else {
 			conf.Cluster.Consumer.Offsets.Initial = sarama.OffsetOldest
+		} else {
+			conf.Cluster.Consumer.Offsets.Initial = sarama.OffsetNewest
 		}
 	}
 	if value, ok := viper.Get("kafka.version").(string); ok {

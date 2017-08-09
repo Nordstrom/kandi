@@ -323,7 +323,7 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.Consumer.Offsets.Initial",
 		func(toTest *KafkaConfig, label string, t *testing.T) {
 			actual := toTest.Cluster.Consumer.Offsets.Initial
-			if actual != sarama.OffsetNewest {
+			if actual != sarama.OffsetOldest {
 				t.Error(fmt.Sprintf("%s expected to be oldest but found %d", label, actual))
 			}
 		},
