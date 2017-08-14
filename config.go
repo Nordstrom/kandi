@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/bsm/sarama-cluster"
 	"github.com/google/uuid"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"strings"
 	"time"
-	"fmt"
 )
 
 type Batch struct {

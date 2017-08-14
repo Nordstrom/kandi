@@ -43,7 +43,7 @@ func (i *Influx) Write(batch influx.BatchPoints) error {
 				MetricInfluxFieldTypeConflict.Add(1)
 				return nil
 			}
-			log.WithField("points", len(batch.Points())).Error("Error while writing points")
+			log.WithError(err).WithField("points", len(batch.Points())).Error("Error while writing points")
 			MetricsInfluxWriteFailure.Add(1)
 			return err
 		}

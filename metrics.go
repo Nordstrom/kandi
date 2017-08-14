@@ -8,27 +8,21 @@ import (
 var MetricsInfluxWriteSuccess = expvar.NewInt("influxPointsWritten")
 var MetricsKafkaMessages = expvar.NewInt("kafkaMessagesConsumed")
 
-
 var MetricKafkaBackoff = expvar.NewInt("kafkaBackoffs")
 var MetricInfluxBackoff = expvar.NewInt("influxBackoffs")
 var MetricMainBackoff = expvar.NewInt("mainBackoffs")
 
-var MetricsKafkaDuration  = expvar.NewInt("kafkaConsumptionDuration")
+var MetricsKafkaDuration = expvar.NewInt("kafkaConsumptionDuration")
 var MetricsInfluxProcessDuration = expvar.NewInt("influxProcessDuration")
 
 var MetricsKafkaInitializationFailure = expvar.NewInt("kafkaInitializationFailure")
 var MetricInfluxInitializationFailure = expvar.NewInt("influxInitializationFailure")
 
-
 var MetricsKafkaBatchDurationExceeded = expvar.NewInt("kafkaMaxDurationExceeded")
 var MetricsKafkaConsumptionError = expvar.NewInt("kafkaConsumptionError")
 
-
-
-
 var MetricsInfluxWriteFailure = expvar.NewInt("influxWriteFailure")
 var MetricsInfluxParseFailure = expvar.NewInt("influxParseFailure")
-
 
 var MetricInfluxPartialWrite = expvar.NewInt("influxPartialWrite")
 var MetricInfluxFieldTypeConflict = expvar.NewInt("influxFieldTypeConflict")

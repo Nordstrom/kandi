@@ -31,9 +31,9 @@ func (k *Kandi) Start() bool {
 	defer close(DONE_NOTIFICATIONS)
 	defer close(MESSAGES_READY_TO_PROCESS)
 	if k.Consumer != nil {
-	k.Consumer.Close()
+		k.Consumer.Close()
 	}
-	
+
 	return isDone
 }
 

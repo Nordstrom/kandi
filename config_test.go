@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/bsm/sarama-cluster"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"testing"
 	"time"
-	log "github.com/sirupsen/logrus"
 )
 
 var TestEnvInfluxConfig = []byte(`

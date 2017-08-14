@@ -6,7 +6,7 @@ import (
 )
 
 type BackoffHandler struct {
-	name 		   string
+	name           string
 	conf           *Config
 	last           time.Time
 	currentBackoff time.Duration

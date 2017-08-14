@@ -1,16 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/Shopify/sarama"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-	"github.com/Shopify/sarama"
-	"errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type InfluxResponse struct {
@@ -30,7 +30,7 @@ type KandiTestSuite struct {
 	expectedMessagesOffsetCommitted []string
 	expectedMessagesSentToInflux    []string
 	expectedErrorReturned           error
-	batchSize						int
+	batchSize                       int
 }
 
 var KandiConsumerTestCases = []KandiTestSuite{
@@ -115,8 +115,6 @@ func (suite *KandiTestSuite) AssertConsumerClosed(sut *Kandi, t *testing.T) {
 		t.Error(fmt.Sprintf("%s: assert_consumer_closed did not close the consumer properly", suite.label))
 	}
 }
-
-
 
 var KandiProcessInvalidResponseTestCases = []KandiTestSuite{
 	{
