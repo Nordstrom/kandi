@@ -80,7 +80,7 @@ func (k *Kandi) fromKafka() ([]*sarama.ConsumerMessage, error) {
 			log.WithError(err).Error("Kafka encountered an error while consuming")
 			MetricsKafkaConsumptionError.Add(1)
 			return consumedMessages, err
-		} else {
+		} else if message != nil {
 			consumedMessages = append(consumedMessages, message)
 		}
 	}
