@@ -3,10 +3,16 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
+	"fmt"
 )
 
 func main() {
-	go http.ListenAndServe(":8080", nil)
+	port := os.Getenv("KANDI_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	go http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 	start(NewKandi(NewConfig()))
 }
 

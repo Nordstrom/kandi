@@ -49,7 +49,7 @@ func load(input []byte) *Config {
 }
 
 func NewConfig() *Config {
-	path := os.Getenv("K2I_CONFIG.PATH")
+	path := os.Getenv("KANDI_CONFIG.PATH")
 	if path == "" {
 		path = "/etc/kandi/kandi.yaml"
 	}
