@@ -10,19 +10,20 @@ type Kandi struct {
 	conf     *Config
 	Consumer Consumer
 	Influx   *Influx
+	PostProcessors []func(processedMessages []*sarama.ConsumerMessage)
 }
 
 func NewKandi(conf *Config) *Kandi {
 	influx := &Influx{conf.Influx}
-	return &Kandi{conf: conf, Influx: influx}
+	return &Kandi{conf: conf, Influx: influx, PostProcessors: []func(processedMessages []*sarama.ConsumerMessage){}}
 }
 
 var MESSAGES_READY_TO_PROCESS chan []*sarama.ConsumerMessage
 var DONE_NOTIFICATIONS chan bool
 
 func (k *Kandi) Start() bool {
-	DONE_NOTIFICATIONS = make(chan bool, 10)
-	MESSAGES_READY_TO_PROCESS = make(chan []*sarama.ConsumerMessage, 100)
+	DONE_NOTIFICATIONS = make(chan bool, 2)
+	MESSAGES_READY_TO_PROCESS = make(chan []*sarama.ConsumerMessage, 5)
 
 	go k.ConsumeMessages()
 	go k.Process()
@@ -53,8 +54,6 @@ func (k *Kandi) ConsumeMessages() {
 }
 
 func (k *Kandi) fromKafka() ([]*sarama.ConsumerMessage, error) {
-	maxDuration := k.conf.Kandi.Batch.Duration
-
 	if k.Consumer == nil {
 		consumer, err := NewKafkaConsumer(k.conf.Kafka)
 		if err == nil {
@@ -63,6 +62,8 @@ func (k *Kandi) fromKafka() ([]*sarama.ConsumerMessage, error) {
 			return nil, err
 		}
 	}
+
+	maxDuration := k.conf.Kandi.Batch.Duration
 
 	consumedMessages := make([]*sarama.ConsumerMessage, k.conf.Kandi.Batch.Size)
 	startTime := time.Now()
@@ -134,5 +135,8 @@ func (k *Kandi) toInflux(batchOfMessages []*sarama.ConsumerMessage) error {
 
 	k.Consumer.MarkOffset(batchOfMessages)
 	MetricsInfluxProcessDuration.Add(time.Since(startTime).Nanoseconds())
+	for _, processor := range k.PostProcessors {
+		processor(batchOfMessages)
+	}
 	return nil
 }

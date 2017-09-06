@@ -28,7 +28,7 @@ type Influx struct {
 }
 
 func (i *Influx) Write(batch influx.BatchPoints) error {
-	if batch != nil && len(batch.Points()) >= i.config.BatchSize {
+	if batch != nil && len(batch.Points()) >= 0 {
 		client, err := i.NewClient()
 		if err != nil {
 			MetricInfluxInitializationFailure.Add(1)

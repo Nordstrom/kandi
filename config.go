@@ -242,7 +242,7 @@ func NewKafkaConfig() *KafkaConfig {
 		conf.Cluster.ClientID = uuid.New().String()
 	}
 	if value, ok := viper.Get("kandi.batch.size").(int); ok {
-		conf.Cluster.ChannelBufferSize = value * 2
+		conf.Cluster.ChannelBufferSize = value + 1
 	}
 	if value, ok := viper.Get("kafka.group.return.notifications").(bool); ok {
 		conf.Cluster.Group.Return.Notifications = value
@@ -269,3 +269,9 @@ func NewKafkaConfig() *KafkaConfig {
 	conf.Cluster.Group.Return.Notifications = true
 	return &conf
 }
+
+
+//unique group.id
+//enable.auto.commit=false
+//auto.offset.reset=smallest (or earliest/beginning)
+//(and maybe make sure there was no offset for this group.id)

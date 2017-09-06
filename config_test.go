@@ -539,8 +539,8 @@ var KafkaConfigTests = []struct {
 		"kafka.Cluster.ChannelBufferSize",
 		func(toTest *KafkaConfig, label string, t *testing.T) {
 			actual := toTest.Cluster.ChannelBufferSize
-			if actual != 8 {
-				t.Error(fmt.Sprintf("%s expected to be 8 seconds but found %d", label, actual))
+			if actual != 5 {
+				t.Error(fmt.Sprintf("%s expected to be 5 seconds but found %d", label, actual))
 			}
 		},
 	},
