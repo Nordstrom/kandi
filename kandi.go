@@ -10,12 +10,12 @@ type Kandi struct {
 	conf     *Config
 	Consumer Consumer
 	Influx   *Influx
-	PostProcessors []func(processedMessages []*sarama.ConsumerMessage)
+	PostProcessors []func(processedMessages []*sarama.ConsumerMessage) bool
 }
 
 func NewKandi(conf *Config) *Kandi {
 	influx := &Influx{conf.Influx}
-	return &Kandi{conf: conf, Influx: influx, PostProcessors: []func(processedMessages []*sarama.ConsumerMessage){}}
+	return &Kandi{conf: conf, Influx: influx, PostProcessors: []func(processedMessages []*sarama.ConsumerMessage) bool {}}
 }
 
 var MESSAGES_READY_TO_PROCESS chan []*sarama.ConsumerMessage
@@ -136,7 +136,10 @@ func (k *Kandi) toInflux(batchOfMessages []*sarama.ConsumerMessage) error {
 	k.Consumer.MarkOffset(batchOfMessages)
 	MetricsInfluxProcessDuration.Add(time.Since(startTime).Nanoseconds())
 	for _, processor := range k.PostProcessors {
-		processor(batchOfMessages)
+		stop := processor(batchOfMessages)
+		if stop {
+			DONE_NOTIFICATIONS <- true
+		}
 	}
 	return nil
 }

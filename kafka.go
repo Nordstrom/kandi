@@ -37,6 +37,7 @@ func GetCurrentoffset(userConfig *KafkaConfig) (map[int32]Offset) {
 	if err != nil {
 
 	}
+	defer client.Close()
 
 	partitionIds, err := client.WritablePartitions(userConfig.Topics)
 	if err != nil {
