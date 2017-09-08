@@ -58,6 +58,9 @@ func backfill(kandi *Kandi) {
 		}
 		return false
 	}
+	kandi.conf.Kafka.Cluster.Consumer.Offsets.Initial = sarama.OffsetOldest
+	kandi.conf.Kafka.Cluster.Consumer.Offsets.Retention = 1 * time.Millisecond
+	kandi.conf.Kafka.ConsumerGroup = kandi.conf.Kafka.ConsumerGroup + "-backfill"
 	kandi.PostProcessors = []func(processedMessages []*sarama.ConsumerMessage) bool {postProcessor}
 
 	log.Debug("Starting Kandi Backfill")

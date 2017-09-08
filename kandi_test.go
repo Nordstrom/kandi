@@ -157,7 +157,7 @@ func Test_Should_Process_Messages_To_Influx_With_Error_Response(t *testing.T) {
 			sut.Consumer = NewMockConsumer(testCase.pointsToReturn)
 			log.SetLevel(log.PanicLevel)
 
-			actual := sut.toInflux(input)
+			_, actual := sut.toInflux(input)
 
 			testCase.AssertErrorReturned(actual, sut, t)
 		})
@@ -212,7 +212,7 @@ func Test_Should_Process_Messages_To_Influx_With_Valid_Response(t *testing.T) {
 			sut.Consumer = NewMockConsumer(testCase.pointsToReturn)
 			log.SetLevel(log.PanicLevel)
 
-			actual := sut.toInflux(input)
+			_, actual := sut.toInflux(input)
 
 			testCase.AssertErrorReturned(actual, sut, t)
 			testCase.AssertOffsetsCommitted(sut, t)
