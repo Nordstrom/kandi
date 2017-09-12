@@ -23,14 +23,16 @@ func main() {
 
 			case "backfill":
 				backfill(NewKandi(NewConfig()))
+				for {
+					time.Sleep(time.Duration(24) * time.Hour)
+				}
 				break
 			default:
 				kandi := NewKandi(NewConfig())
 				start(kandi)
 		}
 	} else {
-		kandi := NewKandi(NewConfig())
-		start(kandi)
+		start(NewKandi(NewConfig()))
 	}
 }
 
@@ -66,10 +68,6 @@ func backfill(kandi *Kandi) {
 	log.Debug("Starting Kandi Backfill")
 	kandi.Start()
 	log.Info("Stopping Kandi Backfill")
-
-	for {
-		time.Sleep(time.Duration(24) * time.Hour)
-	}
 }
 
 func start(kandi *Kandi) {
