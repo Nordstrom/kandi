@@ -269,9 +269,3 @@ func NewKafkaConfig() *KafkaConfig {
 	conf.Cluster.Group.Return.Notifications = true
 	return &conf
 }
-
-
-//unique group.id
-//enable.auto.commit=false
-//auto.offset.reset=smallest (or earliest/beginning)
-//(and maybe make sure there was no offset for this group.id)
