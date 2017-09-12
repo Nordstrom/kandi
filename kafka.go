@@ -26,6 +26,34 @@ type KafkaConsumer struct {
 	Consumer   *cluster.Consumer
 }
 
+type Offset struct {
+	finished	bool
+	mark		int64
+}
+
+func GetCurrentoffset(userConfig *KafkaConfig) (map[int32]Offset) {
+	offsets := make(map[int32]Offset)
+	client, err := sarama.NewClient(strings.Split(userConfig.Brokers, ","), &userConfig.Cluster.Config)
+	if err != nil {
+
+	}
+	defer client.Close()
+
+	partitionIds, err := client.WritablePartitions(userConfig.Topics)
+	if err != nil {
+
+	}
+
+	for _, partitionId := range partitionIds {
+		offset, err := client.GetOffset(userConfig.Topics, partitionId, sarama.OffsetNewest)
+		if err != nil {
+
+		}
+		offsets[partitionId] = Offset{finished: false, mark: offset}
+	}
+	return offsets
+}
+
 func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 	brokers := strings.Split(userConfig.Brokers, ",")
 	topics := strings.Split(userConfig.Topics, ",")
@@ -37,7 +65,9 @@ func NewKafkaConsumer(userConfig *KafkaConfig) (*KafkaConsumer, error) {
 		MetricsKafkaInitializationFailure.Add(1)
 		return nil, err
 	}
-	return &KafkaConsumer{userConfig, consumer}, nil
+	kc := &KafkaConsumer{userConfig, consumer}
+
+	return kc, nil
 }
 
 func (c *KafkaConsumer) ConsumeMessage() (*sarama.ConsumerMessage, error) {
@@ -64,6 +94,7 @@ func (c *KafkaConsumer) Close() {
 }
 
 func (c *KafkaConsumer) MarkOffset(messages []*sarama.ConsumerMessage) {
+
 	for _, message := range messages {
 		if message != nil {
 			c.Consumer.MarkOffset(message, "")
