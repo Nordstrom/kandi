@@ -178,8 +178,11 @@ func NewKafkaConfig() *KafkaConfig {
 		case "V0_10_2_0":
 			conf.Cluster.Version = sarama.V0_10_2_0
 			break
+		case "V0_11_0_0":
+			conf.Cluster.Version = sarama.V0_11_0_0
+			break
 		default:
-			conf.Cluster.Version = sarama.V0_10_2_0
+			conf.Cluster.Version = sarama.V0_11_0_0
 		}
 	}
 	if value, ok := viper.Get("kafka.consumer.offsets.retention").(int); ok {
