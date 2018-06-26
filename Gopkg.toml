@@ -23,11 +23,11 @@
 
 [[constraint]]
   name = "github.com/Shopify/sarama"
-  version = "1.14.0"
+  version = "1.17.0"
 
 [[constraint]]
   name = "github.com/bsm/sarama-cluster"
-  version = "2.1.10"
+  version = "2.1.13"
 
 [[constraint]]
   name = "github.com/influxdata/influxdb"
