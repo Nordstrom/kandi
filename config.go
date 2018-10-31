@@ -13,6 +13,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"crypto/x509"
+	"crypto/tls"
 )
 
 type Batch struct {
@@ -264,6 +266,23 @@ func NewKafkaConfig() *KafkaConfig {
 	}
 	if value, ok := viper.Get("kafka.group.heartbeat.interval").(int); ok {
 		conf.Cluster.Group.Heartbeat.Interval = time.Duration(value) * time.Millisecond
+	}
+	if _, ok := viper.Get("kafka.tls.enabled").(bool); ok && viper.Get("kafka.tls.enabled").(bool) == true {
+		if certLocation, ok := viper.Get("kafka.tls.location").(string); ok {
+			conf.Cluster.Net.TLS.Enable = true
+			caCert, err := ioutil.ReadFile(certLocation)
+			if err != nil {
+				fmt.Println("Unable to use certificate provided " + err.Error())
+			} else {
+				caCertPool := x509.NewCertPool()
+				caCertPool.AppendCertsFromPEM([]byte(caCert))
+				tlsConfig := &tls.Config{
+					RootCAs:      caCertPool,
+					InsecureSkipVerify: true,
+				}
+				conf.Cluster.Net.TLS.Config = tlsConfig
+			}
+		}
 	}
 	if value, ok := viper.Get("kafka.group.session.timeout").(int); ok {
 		conf.Cluster.Group.Session.Timeout = time.Duration(value) * time.Millisecond
